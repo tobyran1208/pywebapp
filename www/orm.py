@@ -4,12 +4,12 @@ import logging
 
 import aiomysql
 import asyncio
-#from orm import Model, StringField, IntegerField
 
+# sql logging
 def log(sql, args=()):
     logging.info('SQL: %s' % sql)
 
-# create connected pool
+# Pool connecting function
 async def create_pool(loop, **kw):
     logging.info('create databease connect pool')
     global __pool
@@ -26,7 +26,7 @@ async def create_pool(loop, **kw):
         loop=loop
     )
 
-#select function
+#SQL select function.
 async def select(sql, args, size=None):
     log(sql, args)
     global __pool
@@ -41,7 +41,7 @@ async def select(sql, args, size=None):
         logging.info('rows returned: %s' % len(rs))
         return rs
 
-#insert, update, delete function
+#SQL other function
 async def execute(sql, args):
     log(sql)
     async with __pool.acquire() as conn:
@@ -54,12 +54,14 @@ async def execute(sql, args):
             raise
         return affected
 
+#Make n ? string. like '?, ?, ?'
 def create_args_string(num):
     L = []
     for n in range(num):
         L.append('?')
     return ', '.join(L)
 
+#Define data type
 class Field(object):
 
     def __init__(self, name, column_type, primary_key, default):
@@ -95,12 +97,13 @@ class TextField(Field):
     def __init__(self, name=None, default=None):
         super().__init__(name, 'text', False, default)
 
+#Define model meataclass
 class ModelMetaclass(type):
 
     def __new__(cls, name, bases, attrs):
         if name=='Model':
             return type.__new__(cls, name, bases, attrs)
-        tableName = attrs.get('__table__', None) or name
+        tableName = attrs.get('__table__', None) or name #define table name
         logging.info('found model: %s (table: %s)' % (name, tableName))
         mappings = dict()
         fields = []
