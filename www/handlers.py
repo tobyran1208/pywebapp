@@ -4,6 +4,8 @@ import re, time, json, logging, hashlib, base64, asyncio
 
 from aiohttp import web
 
+#import markdown2
+
 from coroweb import get, post
 from apis import Page, APIValueError, APIResourceNotFoundError, APIError, APIPermissionError
 
@@ -78,18 +80,17 @@ def index(request):
     return {
         '__template__': 'blogs.html',
         'blogs': blogs,
-#        '__user__': request.__user__
     }
 
-# sign-in, login and logout. APIs first, then templates
-@get('/api/users')
+# register, login and logout. APIs first, then templates
+@get('/api/users') #get user info API
 async def api_get_users():
     users = await User.findAll(orderBy='created_at desc')
     for u in users:
         u.password = '******'
     return dict(users=users)
 
-@post('/api/authenticate')
+@post('/api/authenticate') #login API
 async def authenticate(*, email, passwd):
     if not email:
         raise APIValueError('email', 'Invalid email.')
@@ -114,7 +115,7 @@ async def authenticate(*, email, passwd):
     r.body = json.dumps(user, ensure_ascii=False).encode('utf-8')
     return r
 
-@get('/signout')
+@get('/signout') #logout API
 def signout(request):
     referer = request.headers.get('Referer')
     r = web.HTTPFound(referer or '/')
@@ -125,7 +126,7 @@ def signout(request):
 _RE_EMAIL = re.compile(r'^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$')
 _RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
 
-@post('/api/users')
+@post('/api/users') #register API
 async def api_register_user(*, email, name, passwd):
     if not name or not name.strip():
         raise APIValueError('name')
@@ -148,20 +149,21 @@ async def api_register_user(*, email, name, passwd):
     r.body = json.dumps(user, ensure_ascii=False).encode('utf-8')
     return r
 
-@get('/register')
+@get('/register') #use register API
 def register(request):
     return{
         '__template__': 'register.html'
     }
 
-@get('/signin')
+@get('/signin') #use signin API
 def signin():
     return {
         '__template__': 'signin.html'
     }
 
-#Blogs
-@post('/api/blogs')
+#Blogs APIs and templates
+
+@post('/api/blogs') #create blog API
 async def api_create_blog(request, *, name, summary, content):
     check_admin(request)
     if not name or not name.strip():
@@ -174,12 +176,12 @@ async def api_create_blog(request, *, name, summary, content):
     await blog.save()
     return blog
 
-@get('/api/blogs/{id}')
+@get('/api/blogs/{id}') #get one blog API
 async def api_get_blog(*, id):
     blog = await Blog.find(id)
     return blog
 
-@get('/api/blogs')
+@get('/api/blogs') #get all blogs API
 async def api_blogs(*, page='1'):
     page_index = get_page_index(page)
     num = await Blog.findNumber('count(id)')
@@ -189,7 +191,7 @@ async def api_blogs(*, page='1'):
     blogs = await Blog.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
     return dict(page=p, blogs=blogs)
 
-@get('/manage/blogs/create')
+@get('/manage/blogs/create') #use create API
 def manage_create_blog():
     return {
         '__template__': 'manage_blog_edit.html',
@@ -197,7 +199,7 @@ def manage_create_blog():
         'action': '/api/blogs'
     }
 
-@get('/blog/{id}')
+@get('/blog/{id}') #use get one blog API
 async def get_blog(id):
     blog = await Blog.find(id)
     comments = await Comment.findAll('blog_id=?', [id], orderBy='created_at desc')
@@ -210,9 +212,18 @@ async def get_blog(id):
         'comments': comments
     }
 
-@get('/manage/blogs')
+@get('/manage/blogs') #use get all blogs API
 def manage_blogs(*, page='1'):
     return {
         '__template__': 'manage_blogs.html',
         'page_index': get_page_index(page)
     }
+
+#remain needed functions
+#1）delete user
+#2) change user pwd
+#3) delete blog
+#4) edit blog
+#5) add comment
+#6) delete comment
+#7) show comment
