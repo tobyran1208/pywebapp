@@ -81,24 +81,13 @@ def index(request):
 #        '__user__': request.__user__
     }
 
+# sign-in, login and logout. APIs first, then templates
 @get('/api/users')
 async def api_get_users():
     users = await User.findAll(orderBy='created_at desc')
     for u in users:
         u.password = '******'
     return dict(users=users)
-
-@get('/register')
-def register(request):
-    return{
-        '__template__': 'register.html'
-    }
-
-@get('/signin')
-def signin():
-    return {
-        '__template__': 'signin.html'
-    }
 
 @post('/api/authenticate')
 async def authenticate(*, email, passwd):
@@ -116,7 +105,7 @@ async def authenticate(*, email, passwd):
     sha1.update(b':')
     sha1.update(passwd.encode('utf-8'))
     if user.password != sha1.hexdigest():
-        raise APIValueError('passwd', 'Invalid password.')
+        raise APIValueError('passwd', 'Wrong password.')
     # authenticate ok, set cookie:
     r = web.Response()
     r.set_cookie(COOKIE_NAME, user2cookie(user, 86400), max_age=86400, httponly=True)
@@ -159,6 +148,19 @@ async def api_register_user(*, email, name, passwd):
     r.body = json.dumps(user, ensure_ascii=False).encode('utf-8')
     return r
 
+@get('/register')
+def register(request):
+    return{
+        '__template__': 'register.html'
+    }
+
+@get('/signin')
+def signin():
+    return {
+        '__template__': 'signin.html'
+    }
+
+#Blogs
 @post('/api/blogs')
 async def api_create_blog(request, *, name, summary, content):
     check_admin(request)
@@ -176,6 +178,16 @@ async def api_create_blog(request, *, name, summary, content):
 async def api_get_blog(*, id):
     blog = await Blog.find(id)
     return blog
+
+@get('/api/blogs')
+async def api_blogs(*, page='1'):
+    page_index = get_page_index(page)
+    num = await Blog.findNumber('count(id)')
+    p = Page(num, page_index)
+    if num == 0:
+        return dict(page=p, blogs=())
+    blogs = await Blog.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
+    return dict(page=p, blogs=blogs)
 
 @get('/manage/blogs/create')
 def manage_create_blog():
@@ -196,4 +208,11 @@ async def get_blog(id):
         '__template__': 'blog.html',
         'blog': blog,
         'comments': comments
+    }
+
+@get('/manage/blogs')
+def manage_blogs(*, page='1'):
+    return {
+        '__template__': 'manage_blogs.html',
+        'page_index': get_page_index(page)
     }
