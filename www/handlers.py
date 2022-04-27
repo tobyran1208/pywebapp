@@ -226,4 +226,4 @@ def manage_blogs(*, page='1'):
 #4) edit blog
 #5) add comment
 #6) delete comment
-#7) show comment
+# ##7) show comment
