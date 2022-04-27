@@ -311,3 +311,8 @@ async def api_delete_comments(id, request):
         raise APIResourceNotFoundError('Comment')
     await c.remove()
     return dict(id=id)
+
+#remains
+#1) delete user
+#2) change pwd
+#3) ICONS not showing bug
