@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import re, time, json, logging, hashlib, base64, asyncio
+from this import d
 
 from aiohttp import web
 
@@ -123,7 +124,8 @@ async def authenticate(*, email, passwd):
 @get('/signout') #logout API
 def signout(request):
     referer = request.headers.get('Referer')
-    r = web.HTTPFound(referer or '/')
+#    r = web.HTTPFound(referer or '/')
+    r = web.HTTPFound('/')
     r.set_cookie(COOKIE_NAME, '-deleted-', max_age=0, httponly=True)
     logging.info('user signed out.')
     return r
@@ -153,6 +155,35 @@ async def api_register_user(*, email, name, passwd):
     r.content_type = 'application/json'
     r.body = json.dumps(user, ensure_ascii=False).encode('utf-8')
     return r
+
+@post('/api/changepwd')
+async def api_changepwd(request, *, passwd1, passwd2):
+    user = request.__user__
+    sha1 = hashlib.sha1()
+    sha1.update(user.id.encode('utf-8'))
+    sha1.update(b':')
+    sha1.update(passwd1.encode('utf-8'))
+    if user.password != sha1.hexdigest():
+        raise APIValueError('passwd', 'Wrong password.')
+    uid = user.id
+    sha1_passwd = '%s:%s' % (uid, passwd2)
+    pd = hashlib.sha1(sha1_passwd.encode('utf-8')).hexdigest()
+    user.password = pd
+    await user.update()
+    r = web.Response()
+    r.set_cookie(COOKIE_NAME, user2cookie(user, 86400), max_age=86400, httponly=True)
+    user.password = '******'
+    r.content_type = 'application/json'
+    r.body = json.dumps(user, ensure_ascii=False).encode('utf-8')
+    return r
+
+@get('/changepwd') 
+def get_changepwd(request):
+    email = request.__user__.email
+    return {
+        '__template__': 'changepwd.html',
+        'email': email
+    }
 
 @get('/register') #use register API
 def register(request):
