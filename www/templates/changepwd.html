@@ -7,6 +7,7 @@
 <script>
 
 var email = '{{ email }}';
+console.log(email)
 
 $(function () {
     var vm = new Vue({
@@ -29,8 +30,8 @@ $(function () {
                 if (this.password2 !== this.password3) {
                     return $form.showFormError('两次输入的口令不一致');
                 }
-                $form.postJSON('/api/users', {
-                    passwd1: CryptoJS.SHA1(email + ':' + this.password1).toString(),
+                $form.postJSON('/api/changepwd', {
+                    passwd1: this.password1==='' ? '' : CryptoJS.SHA1(email + ':' + this.password1).toString(),
                     passwd2: CryptoJS.SHA1(email + ':' + this.password2).toString()
                 }, function (err, r) {
                     if (err) {

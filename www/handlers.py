@@ -106,6 +106,7 @@ async def authenticate(*, email, passwd):
     if len(users) == 0:
         raise APIValueError('email', 'Email not exist.')
     user = users[0]
+    print(user.id)
     # check passwd:
     sha1 = hashlib.sha1()
     sha1.update(user.id.encode('utf-8'))
@@ -158,7 +159,10 @@ async def api_register_user(*, email, name, passwd):
 
 @post('/api/changepwd')
 async def api_changepwd(request, *, passwd1, passwd2):
-    user = request.__user__
+    user_now = request.__user__
+    email = user_now.email
+    users = await User.findAll('email=?', [email])
+    user = users[0]
     sha1 = hashlib.sha1()
     sha1.update(user.id.encode('utf-8'))
     sha1.update(b':')
