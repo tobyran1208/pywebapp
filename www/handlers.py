@@ -152,16 +152,16 @@ async def api_register_user(*, email, name, passwd):
     # make session cookie:
     r = web.Response()
     r.set_cookie(COOKIE_NAME, user2cookie(user, 86400), max_age=86400, httponly=True)
-    user.password = '******'
+    user.password = '******'  # when cookie made, make password=**** in cookie, not affect database becoz not call save or update method
     r.content_type = 'application/json'
     r.body = json.dumps(user, ensure_ascii=False).encode('utf-8')
     return r
 
 @post('/api/changepwd')
 async def api_changepwd(request, *, passwd1, passwd2):
-    user_now = request.__user__
+    user_now = request.__user__ #__user__ in request only has password like '***'
     email = user_now.email
-    users = await User.findAll('email=?', [email])
+    users = await User.findAll('email=?', [email]) #through User.find method to get real password
     user = users[0]
     sha1 = hashlib.sha1()
     sha1.update(user.id.encode('utf-8'))
